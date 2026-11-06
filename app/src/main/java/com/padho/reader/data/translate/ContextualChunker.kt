@@ -1,6 +1,6 @@
 package com.padho.reader.data.translate
 
-import android.icu.text.BreakIterator
+import java.text.BreakIterator
 import java.util.Locale
 
 /**
