@@ -39,6 +39,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.padho.reader.data.TranslationCache
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
@@ -96,7 +97,7 @@ private fun PadhoApp() {
     var dark by remember { mutableStateOf(false) }
     var showOriginal by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val translationCache = remember { mutableStateMapOf<String, String>() }
+    val translationCache = remember { TranslationCache(context) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
             try { context.contentResolver.takePersistableUriPermission(picked, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
@@ -137,7 +138,7 @@ private fun PadhoApp() {
             val extracted = withContext(Dispatchers.IO) { extractPageText(context, documentUri, page) }
             pageText = extracted
             val key = "${documentUri}|${page}|${language}"
-            val cached = translationCache[key]
+            val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
                 translating = true
@@ -150,7 +151,7 @@ private fun PadhoApp() {
                     } finally { translator.close() }
                 }
                 translatedText = result
-                translationCache[key] = result
+                withContext(Dispatchers.IO) { translationCache.put(key, result) }
             }
         } catch (e: Exception) {
             error = e.message ?: "Couldn't read or translate this PDF page."
