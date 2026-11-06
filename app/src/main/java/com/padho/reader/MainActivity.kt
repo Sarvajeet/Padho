@@ -113,6 +113,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
     var translatedText by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var translating by remember { mutableStateOf(false) }
+    var translationStatus by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var retryNonce by remember { mutableIntStateOf(0) }
     var dark by remember { mutableStateOf(preferences.getBoolean("dark_theme", false)) }
@@ -186,6 +187,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         val documentUri = uri ?: return@LaunchedEffect
         loading = true
         translating = false
+        translationStatus = "Preparing page…"
         error = null
         pageText = ""
         translatedText = ""
@@ -207,8 +209,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
                 translating = true
+                translationStatus = "Checking language model…"
                 val result = withContext(Dispatchers.IO) {
-                    translationProvider.translate(extracted, targetCode(language))
+                    translationProvider.translate(extracted, targetCode(language)) { status ->
+                        withContext(Dispatchers.Main) { translationStatus = status }
+                    }
                 }
                 translatedText = result
                 withContext(Dispatchers.IO) { translationCache.put(key, result) }
@@ -222,6 +227,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             if (currentCoroutineContext().isActive) {
                 loading = false
                 translating = false
+                translationStatus = ""
             }
         }
 
@@ -251,7 +257,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             if (uri == null) WelcomeScreen(language, { language = it }) { picker.launch(arrayOf("application/pdf")) }
             else ReaderScreen(
                 title, page, pageCount, bitmap, pageText, translatedText, loading, translating,
-                error, language, dark, showOriginal, fontSizeSp,
+                error, language, dark, showOriginal, fontSizeSp, translationStatus,
                 { if (page > 0) page-- }, { if (page + 1 < pageCount) page++ },
                 { language = it; showOriginal = false }, { showOriginal = !showOriginal },
                 { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }, { retryNonce++ },
@@ -305,7 +311,7 @@ private fun WelcomeScreen(language: String, onLanguage: (String) -> Unit, onOpen
 private fun ReaderScreen(
     title: String, page: Int, count: Int, bitmap: Bitmap?, pageText: String, translatedText: String,
     loading: Boolean, translating: Boolean, error: String?, language: String, dark: Boolean,
-    showOriginal: Boolean, fontSizeSp: Float, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
+    showOriginal: Boolean, fontSizeSp: Float, translationStatus: String, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
     toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit, retry: () -> Unit,
     decreaseFont: () -> Unit, increaseFont: () -> Unit
 ) {
@@ -357,7 +363,7 @@ private fun ReaderScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = Green)
                             Spacer(Modifier.width(10.dp))
-                            Text("Preparing translation…", color = Muted, fontSize = 12.sp)
+                            Text(translationStatus.ifBlank { "Preparing translation…" }, color = Muted, fontSize = 12.sp)
                         }
                     }
                     if (error != null && pageText.isNotBlank()) {
@@ -372,7 +378,7 @@ private fun ReaderScreen(
             IconButton(onClick = previous, enabled = page > 0) { Icon(Icons.Outlined.ChevronLeft, "Previous page", tint = foreground) }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("${page + 1} / $count", color = foreground, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                Text(if (translating) "Preparing language model…" else "Reading in $language", color = Muted, fontSize = 11.sp)
+                Text(if (translating) translationStatus.ifBlank { "Preparing translation…" } else "Reading in $language", color = Muted, fontSize = 11.sp)
             }
             IconButton(onClick = next, enabled = page + 1 < count) { Icon(Icons.Outlined.ChevronRight, "Next page", tint = foreground) }
         }
