@@ -10,7 +10,7 @@ interface TranslationProvider {
 
     /**
      * Translate English source text into the requested ML Kit language code.
-     * Implementations may block; call from a background dispatcher.
+     * Implementations are suspending and should cooperate with coroutine cancellation.
      */
-    fun translate(sourceText: String, targetLanguageCode: String): String
+    suspend fun translate(sourceText: String, targetLanguageCode: String): String
 }
