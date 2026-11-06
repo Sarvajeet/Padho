@@ -17,10 +17,14 @@ object OcrTextExtractor {
         return try {
             val result = Tasks.await(recognizer.process(InputImage.fromBitmap(bitmap, 0)))
             result.textBlocks
-                .flatMap { block -> block.lines }
-                .map { line -> line.text.trim() }
-                .filter { it.isNotEmpty() }
-                .joinToString("\n")
+                .map { block ->
+                    block.lines
+                        .map { line -> line.text.trim() }
+                        .filter { it.isNotEmpty() }
+                        .joinToString("\n")
+                }
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
                 .trim()
         } finally {
             recognizer.close()
