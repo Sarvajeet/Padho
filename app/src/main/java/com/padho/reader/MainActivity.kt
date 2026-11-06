@@ -36,12 +36,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.padho.reader.data.TranslationCache
+import com.padho.reader.data.pdf.PdfParagraphExtractor
 import com.padho.reader.data.translate.ContextualTranslationRequest
 import com.padho.reader.data.translate.MlKitContextualTranslationProvider
 import com.padho.reader.data.translate.ParagraphTranslationCoordinator
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -89,19 +89,27 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-paragraph-v2|en|$language|$uri|$pageIndex|$digest"
+    return "mlkit-paragraph-v3|en|$language|$uri|$pageIndex|$digest"
 }
 
 private suspend fun translatePageText(text: String, language: String): String {
     if (text.isBlank()) return text
-    val request = ContextualTranslationRequest(
-        paragraph = text,
-        sourceLanguage = TranslateLanguage.ENGLISH,
-        targetLanguage = targetCode(language)
-    )
+    val paragraphs = text.split("\\n\\n")
     val provider = MlKitContextualTranslationProvider()
     return try {
-        ParagraphTranslationCoordinator(provider).translate(request)
+        val coordinator = ParagraphTranslationCoordinator(provider)
+        paragraphs.mapIndexed { index, paragraph ->
+            if (paragraph.isBlank()) paragraph
+            else coordinator.translate(
+                ContextualTranslationRequest(
+                    paragraph = paragraph,
+                    sourceLanguage = TranslateLanguage.ENGLISH,
+                    targetLanguage = targetCode(language),
+                    precedingContext = paragraphs.getOrNull(index - 1),
+                    followingContext = paragraphs.getOrNull(index + 1)
+                )
+            )
+        }.joinToString("\\n\\n")
     } finally {
         provider.close()
     }
@@ -111,13 +119,7 @@ private fun extractPageText(context: android.content.Context, uri: Uri, pageInde
     context.contentResolver.openInputStream(uri).use { input ->
         requireNotNull(input) { "Unable to open this PDF." }
         PDDocument.load(input).use { document ->
-            if (pageIndex !in 0 until document.numberOfPages) return ""
-            val stripper = PDFTextStripper().apply {
-                startPage = pageIndex + 1
-                endPage = pageIndex + 1
-                sortByPosition = true
-            }
-            return stripper.getText(document).trim()
+            return PdfParagraphExtractor().extract(document, pageIndex).joinToString("\\n\\n")
         }
     }
 }
