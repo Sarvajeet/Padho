@@ -22,11 +22,11 @@ The app currently includes:
 - Scanned PDFs without selectable text are not OCR'd yet; the original page image is shown.
 - Prefetch currently warms only the next page. A bounded queue with cancellation and reprioritization is still needed.
 - The app currently extracts text by opening the PDF for each page. A reusable document session should be added for large PDFs.
-- Cache size limits, expiry, and translation-engine versioning still need implementation.
+- Cache keys now include the source page text's SHA-256 fingerprint and a translation-engine version, preventing reuse when extracted page content changes. Cache size limits and expiry still need implementation.
 - Validate ML Kit language model availability and translation quality with representative PDFs before release.
 
 ## Build locally
 
 Open the repository in Android Studio with JDK 17 and Android SDK Platform 35 installed. Allow Gradle sync, then run the `app` configuration on an Android device or emulator.
 
-A Gradle wrapper is not included yet. The project has not been verified by a clean CI build, so run a local Gradle sync/build before treating this snapshot as release-ready.
+A Gradle wrapper is not included yet. A GitHub Actions debug build is configured. Recent runs exposed Kotlin compilation errors that have been corrected in the latest commits; the latest run must finish successfully before treating the snapshot as build-verified or release-ready.
