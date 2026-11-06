@@ -43,8 +43,8 @@ Important implementation details established from DEX:
 
 1. `PdfTextExtractor.LineCollector` has both `collect` and `writeString` methods. The extractor groups line text before calling `buildBlocks`.
 2. `buildBlocks` calculates font-size statistics and compares line Y positions/heights; it calls `appendDehyphenated` and flushes accumulated text into `Block` objects.
-3. `Segmenter.chunks` uses Android ICU `BreakIterator.getSentenceInstance(Locale)`. Therefore the shipped binary does contain sentence-boundary segmentation; it is not simply splitting every word on whitespace.
-4. `PagePipeline.translateBlock` calls `Segmenter.chunks`, creates an async task for every returned chunk, awaits all tasks, then joins their outputs with a space.
+3. `Segmenter.chunks` uses Android ICU `BreakIterator.getSentenceInstance(Locale)`. The DEX default-argument method sets the chunk limit to **400 characters**. Therefore the shipped binary does contain sentence-boundary segmentation; it is not simply splitting every word on whitespace.
+4. `PagePipeline.translateBlock` calls `Segmenter.chunks`, creates an async task for every returned chunk, awaits all tasks, then joins their outputs with a hard-coded single space. This can lose original whitespace and paragraph formatting.
 5. `MlKitEngine.translate` calls ML Kit's `Translator.translate(String)` with the full string supplied by the pipeline. ML Kit itself is not called once per token in this method.
 6. The ML Kit source language is English (`en`); target language is taken from `TargetLang`.
 7. Cache key metadata includes document fingerprint, language, and engine identifier. A segmentation/prompt version is not evident in the recovered key signature.
@@ -72,7 +72,7 @@ The current execution environment has Java and ZIP tooling but no JADX, APKTool,
 
 Do not claim the original project is restored, the translation defect is fixed, or a replacement APK has been built until source reconstruction, Android build, and device tests are complete.
 
-## Corrective design
+## Recovery code added on claude-apk-review\n\nThe branch now contains a first-pass, isolated Kotlin implementation (not yet wired into the recovered reader):\n\n- `ContextualChunker.kt`: sends a short paragraph as one unit and splits oversized paragraphs only at ICU sentence boundaries. It keeps an over-limit sentence intact rather than splitting it into words.\n- `ContextualTranslationProvider.kt`: defines a provider contract carrying paragraph text, source/target languages, neighboring context, and an optional glossary.\n- `ParagraphTranslationCoordinator.kt`: processes long-paragraph chunks in order and supplies neighboring chunks as context to providers that support it.\n- Unit tests cover whole-paragraph requests, sentence-boundary chunking, exact source offsets, oversized sentences, and context propagation.\n\nThese files are a recovery prototype. They are not connected to the APK-derived `PagePipeline` yet, and no Android build or test execution has been possible in this environment.\n\n## Corrective design
 
 - Reconstruct paragraph-level semantic blocks before translation.
 - Combine adjacent body-text blocks when layout metadata indicates the same paragraph; do not merge headings, list items, columns, captions, or footnotes.
