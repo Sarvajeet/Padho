@@ -37,7 +37,8 @@
 - Automatic page translation
 - Original/translated toggle
 - Persistent preferred language
-- Clear handling of pages with no extractable text
+- On-device OCR fallback for scanned English pages
+- Clear handling when neither embedded text nor OCR can recognize a page
 
 ### Performance
 - Current-page-first scheduling
@@ -48,7 +49,7 @@
 
 ## Out of scope for the first release
 
-- OCR for scanned-only PDFs
+- High-accuracy layout reconstruction for complex scanned PDFs
 - EPUB and web pages
 - Summaries and chat with documents
 - Voice reading
