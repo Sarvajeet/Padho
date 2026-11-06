@@ -32,7 +32,7 @@
 - [x] Light and dark themes
 - [ ] Typography and spacing controls
 - [ ] Smooth page transitions
-- [ ] Reading progress and reopen support
+- [x] Remember last persistable PDF and page position; restore on launch
 - [ ] Accessibility review for Indic scripts
 
 ## Phase 4: Expansion
