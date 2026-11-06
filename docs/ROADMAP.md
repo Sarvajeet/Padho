@@ -26,7 +26,7 @@
 - [ ] Performance instrumentation
 
 ## Phase 3: Reading experience
-- [ ] Persist preferred language
+- [x] Persist preferred language
 - [x] Minimal reader controls
 - [x] Light and dark themes
 - [ ] Typography and spacing controls
@@ -42,7 +42,14 @@
 - [ ] Glossary and vocabulary support
 
 ## Release readiness
-- [ ] Add Gradle wrapper
+- [ ] Add Gradle wrapper (or document CI-provided Gradle)
 - [ ] Add automated unit tests
 - [ ] Verify clean Android build in CI
 - [ ] Test with real PDFs on physical devices
+
+
+## Recent platform work
+- [x] Accept PDFs opened from compatible Android apps (VIEW intent)
+- [x] Accept PDFs shared from compatible Android apps (SEND intent)
+- [x] Remember preferred language and theme locally
+- [x] Add GitHub Actions debug APK build workflow
