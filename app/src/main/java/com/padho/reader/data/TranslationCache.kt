@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.LruCache
 
 /**
  * Persistent cache for page translations.
@@ -13,6 +14,11 @@ import android.database.sqlite.SQLiteOpenHelper
  */
 class TranslationCache(context: Context) :
     SQLiteOpenHelper(context.applicationContext, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    private val memoryCache = object : LruCache<String, String>(MAX_MEMORY_BYTES) {
+        override fun sizeOf(key: String, value: String): Int =
+            (value.length * 2).coerceAtLeast(1)
+    }
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -31,7 +37,9 @@ class TranslationCache(context: Context) :
     }
 
     fun get(cacheKey: String): String? {
-        readableDatabase.query(
+        memoryCache.get(cacheKey)?.let { return it }
+
+        val translated = readableDatabase.query(
             TABLE_TRANSLATIONS,
             arrayOf(COLUMN_TRANSLATED_TEXT),
             "$COLUMN_CACHE_KEY = ?",
@@ -40,11 +48,14 @@ class TranslationCache(context: Context) :
             null,
             null
         ).use { cursor ->
-            return if (cursor.moveToFirst()) cursor.getString(0) else null
+            if (cursor.moveToFirst()) cursor.getString(0) else null
         }
+        if (translated != null) memoryCache.put(cacheKey, translated)
+        return translated
     }
 
     fun put(cacheKey: String, translatedText: String) {
+        memoryCache.put(cacheKey, translatedText)
         val values = ContentValues().apply {
             put(COLUMN_CACHE_KEY, cacheKey)
             put(COLUMN_TRANSLATED_TEXT, translatedText)
@@ -106,6 +117,7 @@ class TranslationCache(context: Context) :
     companion object {
         private const val DATABASE_NAME = "padho_translations.db"
         private const val DATABASE_VERSION = 1
+        private const val MAX_MEMORY_BYTES = 4 * 1024 * 1024
         private const val MAX_ENTRIES = 500
         private const val MAX_TEXT_BYTES = 32L * 1024L * 1024L
         private const val MAX_AGE_MS = 90L * 24L * 60L * 60L * 1000L
