@@ -1,6 +1,6 @@
 package com.padho.reader.translation
 
-import com.google.android.gms.tasks.Tasks
+import kotlinx.coroutines.tasks.await
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
@@ -13,7 +13,7 @@ import com.padho.reader.data.TranslationTextChunker
 class MlKitTranslationProvider : TranslationProvider {
     override val cacheVersion: String = "mlkit-v3"
 
-    override fun translate(sourceText: String, targetLanguageCode: String): String {
+    override suspend fun translate(sourceText: String, targetLanguageCode: String): String {
         if (sourceText.isBlank()) return ""
 
         val options = TranslatorOptions.Builder()
@@ -23,10 +23,10 @@ class MlKitTranslationProvider : TranslationProvider {
         val translator = Translation.getClient(options)
 
         try {
-            Tasks.await(translator.downloadModelIfNeeded())
+            translator.downloadModelIfNeeded().await()
             return TranslationTextChunker.paragraphs(sourceText).joinToString("\n\n") { chunks ->
                 chunks.joinToString(" ") { chunk ->
-                    Tasks.await(translator.translate(chunk))
+                    translator.translate(chunk).await()
                 }
             }
         } finally {
