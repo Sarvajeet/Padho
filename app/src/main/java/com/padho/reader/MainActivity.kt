@@ -34,7 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.padho.reader.data.TranslationCache
-import com.padho.reader.data.PdfTextExtractor
+import com.padho.reader.data.PdfPageTextExtractor
 import com.padho.reader.data.PdfDocumentSession
 import com.padho.reader.translation.MlKitTranslationProvider
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -85,7 +85,7 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-v3|en|$language|$uri|$pageIndex|$digest"
+    return "mlkit-v4-pdftext-v2|en|$language|$uri|$pageIndex|$digest"
 }
 
 @Composable
@@ -152,7 +152,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             }
             bitmap = rendered.first
             pageCount = rendered.second
-            val extracted = withContext(Dispatchers.IO) { PdfTextExtractor.extractPageText(context, documentUri, page) }
+            val extracted = withContext(Dispatchers.IO) { PdfPageTextExtractor.extractPageText(context, documentUri, page, pdfSession) }
             pageText = extracted
             val key = translationCacheKey(documentUri, page, language, extracted)
             val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
@@ -177,7 +177,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         if (nextPage < pageCount) {
             launch(Dispatchers.IO) {
                 try {
-                    val nextText = PdfTextExtractor.extractPageText(context, documentUri, nextPage)
+                    val nextText = PdfPageTextExtractor.extractPageText(context, documentUri, nextPage, pdfSession)
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
                         val nextTranslation = translationProvider.translate(nextText, targetCode(language))
