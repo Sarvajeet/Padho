@@ -72,7 +72,7 @@ The current execution environment has Java and ZIP tooling but no JADX, APKTool,
 
 Do not claim the original project is restored, the translation defect is fixed, or a replacement APK has been built until source reconstruction, Android build, and device tests are complete.
 
-## Recovery code added on claude-apk-review\n\nThe branch now contains a first-pass, isolated Kotlin implementation (not yet wired into the recovered reader):\n\n- `ContextualChunker.kt`: sends a short paragraph as one unit and splits oversized paragraphs only at ICU sentence boundaries. It keeps an over-limit sentence intact rather than splitting it into words.\n- `ContextualTranslationProvider.kt`: defines a provider contract carrying paragraph text, source/target languages, neighboring context, and an optional glossary.\n- `ParagraphTranslationCoordinator.kt`: processes long-paragraph chunks in order and supplies neighboring chunks as context to providers that support it.\n- Unit tests cover whole-paragraph requests, sentence-boundary chunking, exact source offsets, oversized sentences, and context propagation.\n\nThese files are a recovery prototype. They are not connected to the APK-derived `PagePipeline` yet, and no Android build or test execution has been possible in this environment.\n\n## Corrective design
+## Recovery code added on claude-apk-review\n\nThe branch now contains a first-pass, isolated Kotlin implementation (not yet wired into the recovered reader):\n\n- `ContextualChunker.kt`: sends a short paragraph as one unit and splits oversized paragraphs only at ICU sentence boundaries. It keeps an over-limit sentence intact rather than splitting it into words.\n- `ContextualTranslationProvider.kt`: defines a provider contract carrying paragraph text, source/target languages, neighboring context, and an optional glossary.\n- `ParagraphTranslationCoordinator.kt`: processes long-paragraph chunks in order and supplies neighboring chunks as context to providers that support it. A follow-up fix now preserves the source whitespace around every chunk during reassembly instead of joining translations with a single space. This keeps source line breaks, tabs, and repeated spaces intact.\n- Unit tests cover whole-paragraph requests, sentence-boundary chunking, exact source offsets, oversized sentences, context propagation, whitespace preservation, and whitespace-only input.\n\nThese files are a recovery prototype. They are not connected to the APK-derived `PagePipeline` yet, and no Android build or test execution has been possible in this environment.\n\n## Corrective design
 
 - Reconstruct paragraph-level semantic blocks before translation.
 - Combine adjacent body-text blocks when layout metadata indicates the same paragraph; do not merge headings, list items, columns, captions, or footnotes.
@@ -91,3 +91,16 @@ Create golden passages for English-to-Hindi, Gujarati, Marathi, and Tamil coveri
 ## Branch safety
 
 All recovery work belongs on `claude-apk-review`. Keep `main` unchanged until the reconstructed app passes functional and translation-quality verification.
+
+
+## Latest recovery iteration
+
+The paragraph coordinator initially joined translated chunks with a literal space. That would reproduce one of the APK's known formatting weaknesses. It has now been changed to:
+- Strip only surrounding whitespace before sending each chunk to the provider.
+- Preserve the exact leading and trailing source whitespace when reassembling the translated output.
+- Keep blank/whitespace-only chunks without making an unnecessary provider call.
+- Retain ordered translation and neighboring-chunk context.
+
+Regression tests were added for repeated spaces, a line break, a tab, and whitespace-only input. These tests are committed but remain **unexecuted** because this environment has no Gradle wrapper/Gradle installation or Android SDK. The change is therefore source-reviewed, not build-verified.
+
+The original APK's paragraph builder is still not fully decompiled. DEX confirms that it groups extracted lines using font-size and vertical-position/height comparisons, but the precise branch thresholds and runtime block sizes have not yet been established. Do not replace that logic based on assumptions.
