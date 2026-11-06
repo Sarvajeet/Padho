@@ -56,7 +56,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
-        setContent { PadhoApp() }
+        renderApp(intent?.data)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        renderApp(intent.data)
+    }
+
+    private fun renderApp(incomingPdf: Uri?) {
+        setContent { PadhoApp(incomingPdf) }
     }
 }
 
@@ -83,10 +93,12 @@ private fun extractPageText(context: android.content.Context, uri: Uri, pageInde
 }
 
 @Composable
-private fun PadhoApp() {
-    var uri by remember { mutableStateOf<Uri?>(null) }
+private fun PadhoApp(incomingPdf: Uri?) {
+    val context = LocalContext.current
+    val preferences = remember { context.getSharedPreferences("padho_preferences", android.content.Context.MODE_PRIVATE) }
+    var uri by remember { mutableStateOf(incomingPdf) } }
     var title by remember { mutableStateOf("Your PDF") }
-    var language by remember { mutableStateOf("हिन्दी") }
+    var language by remember { mutableStateOf(preferences.getString("reading_language", "हिन्दी") ?: "हिन्दी") } }
     var page by remember { mutableIntStateOf(0) }
     var pageCount by remember { mutableIntStateOf(0) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -95,9 +107,10 @@ private fun PadhoApp() {
     var loading by remember { mutableStateOf(false) }
     var translating by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var dark by remember { mutableStateOf(false) }
+    var dark by remember { mutableStateOf(preferences.getBoolean("dark_theme", false)) } }
     var showOriginal by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    LaunchedEffect(language) { preferences.edit().putString("reading_language", language).apply() }
+    LaunchedEffect(dark) { preferences.edit().putBoolean("dark_theme", dark).apply() }
     val translationCache = remember { TranslationCache(context) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
