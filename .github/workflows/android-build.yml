@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   assemble-debug:
-    name: Compile debug APK
+    name: Test and build Padho
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -42,3 +42,29 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Restore Padho release signing key
+        if: ${{ secrets.PADHO_KEYSTORE_BASE64 != '' }}
+        env:
+          PADHO_KEYSTORE_BASE64: ${{ secrets.PADHO_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p app/keystore
+          printf '%s' "$PADHO_KEYSTORE_BASE64" | base64 --decode > app/keystore/padho-release.jks
+
+      - name: Build signed release APK
+        if: ${{ secrets.PADHO_KEYSTORE_BASE64 != '' && secrets.PADHO_KEYSTORE_PASSWORD != '' && secrets.PADHO_KEY_ALIAS != '' && secrets.PADHO_KEY_PASSWORD != '' }}
+        env:
+          PADHO_KEYSTORE_PATH: app/keystore/padho-release.jks
+          PADHO_KEYSTORE_PASSWORD: ${{ secrets.PADHO_KEYSTORE_PASSWORD }}
+          PADHO_KEY_ALIAS: ${{ secrets.PADHO_KEY_ALIAS }}
+          PADHO_KEY_PASSWORD: ${{ secrets.PADHO_KEY_PASSWORD }}
+        run: gradle --no-daemon assembleRelease
+
+      - name: Upload signed release APK
+        if: ${{ secrets.PADHO_KEYSTORE_BASE64 != '' && secrets.PADHO_KEYSTORE_PASSWORD != '' && secrets.PADHO_KEY_ALIAS != '' && secrets.PADHO_KEY_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: padho-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
