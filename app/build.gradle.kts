@@ -4,6 +4,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val padhoKeystorePath = System.getenv("PADHO_KEYSTORE_PATH")
+val padhoKeystorePassword = System.getenv("PADHO_KEYSTORE_PASSWORD")
+val padhoKeyAlias = System.getenv("PADHO_KEY_ALIAS")
+val padhoKeyPassword = System.getenv("PADHO_KEY_PASSWORD")
+val hasPadhoSigning = listOf(
+    padhoKeystorePath, padhoKeystorePassword, padhoKeyAlias, padhoKeyPassword
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.padho.reader"
     compileSdk = 35
@@ -11,9 +19,30 @@ android {
         applicationId = "com.padho.reader"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
+
+    signingConfigs {
+        create("padhoRelease") {
+            if (hasPadhoSigning) {
+                storeFile = file(padhoKeystorePath!!)
+                storePassword = padhoKeystorePassword
+                keyAlias = padhoKeyAlias
+                keyPassword = padhoKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (hasPadhoSigning) {
+                signingConfig = signingConfigs.getByName("padhoRelease")
+            }
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
