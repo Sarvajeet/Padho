@@ -15,7 +15,6 @@ data class ContextualTranslationRequest(
     val preserveParagraphFormatting: Boolean = true
 ) {
     init {
-        require(paragraph.isNotBlank()) { "paragraph must not be blank" }
         require(sourceLanguage.isNotBlank()) { "sourceLanguage must not be blank" }
         require(targetLanguage.isNotBlank()) { "targetLanguage must not be blank" }
     }
