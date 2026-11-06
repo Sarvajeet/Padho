@@ -3,6 +3,8 @@ package com.padho.reader.translation
 import kotlinx.coroutines.tasks.await
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.common.model.RemoteModelManager
+import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationTextChunker
 
@@ -13,7 +15,7 @@ import com.padho.reader.data.TranslationTextChunker
 class MlKitTranslationProvider : TranslationProvider {
     override val cacheVersion: String = "mlkit-v3"
 
-    override suspend fun translate(sourceText: String, targetLanguageCode: String): String {
+    override suspend fun translate(sourceText: String, targetLanguageCode: String, onStatus: suspend (String) -> Unit): String {
         if (sourceText.isBlank()) return ""
 
         val options = TranslatorOptions.Builder()
@@ -23,7 +25,11 @@ class MlKitTranslationProvider : TranslationProvider {
         val translator = Translation.getClient(options)
 
         try {
+            val model = TranslateRemoteModel.Builder(targetLanguageCode).build()
+            val isDownloaded = RemoteModelManager.getInstance().isModelDownloaded(model).await()
+            if (!isDownloaded) onStatus("Downloading language model…")
             translator.downloadModelIfNeeded().await()
+            onStatus("Translating…")
             val translatedParagraphs = mutableListOf<String>()
             for (paragraphChunks in TranslationTextChunker.paragraphs(sourceText)) {
                 val translatedChunks = mutableListOf<String>()
