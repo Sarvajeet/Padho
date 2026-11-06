@@ -58,7 +58,7 @@ class ParagraphTranslationCoordinatorTest {
                 return request.paragraph
             }
         }
-        val paragraph = "First sentence is complete.  \\nSecond sentence is complete.\\tThird sentence is complete."
+        val paragraph = "First sentence is complete.  \nSecond sentence is complete.\tThird sentence is complete."
 
         val result = ParagraphTranslationCoordinator(
             provider,
@@ -79,10 +79,10 @@ class ParagraphTranslationCoordinatorTest {
         }
 
         val result = ParagraphTranslationCoordinator(provider).translate(
-            ContextualTranslationRequest("   \\n  ", targetLanguage = "hi")
+            ContextualTranslationRequest("   \n  ", targetLanguage = "hi")
         )
 
-        assertEquals("   \\n  ", result)
+        assertEquals("   \n  ", result)
         assertEquals(0, calls)
     }
 }
