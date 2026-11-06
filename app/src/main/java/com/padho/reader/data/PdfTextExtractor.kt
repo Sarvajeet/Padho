@@ -37,9 +37,14 @@ object PdfTextExtractor {
         rawText
             .replace("\r\n", "\n")
             .replace('\r', '\n')
-            .lineSequence()
-            .map { it.trimEnd() }
-            .joinToString("\n")
-            .replace(Regex("\n{3,}"), "\n\n")
+            .split(Regex("\\n\\s*\\n+"))
+            .map { paragraph ->
+                paragraph.lineSequence()
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .joinToString(" ")
+            }
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
             .trim()
 }
