@@ -2,7 +2,7 @@ name: Android build
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude-apk-review]
   pull_request:
     branches: [main]
   workflow_dispatch:
