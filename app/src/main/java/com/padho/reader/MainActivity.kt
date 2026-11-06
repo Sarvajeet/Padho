@@ -56,17 +56,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
-        renderApp(intent?.data)
+        renderApp(resolveIncomingPdf(intent))
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        renderApp(intent.data)
+        renderApp(resolveIncomingPdf(intent))
     }
 
     private fun renderApp(incomingPdf: Uri?) {
         setContent { PadhoApp(incomingPdf) }
+    }
+
+    private fun resolveIncomingPdf(source: android.content.Intent?): Uri? {
+        if (source == null) return null
+        return source.data ?: if (source.action == android.content.Intent.ACTION_SEND) {
+            @Suppress("DEPRECATION")
+            source.getParcelableExtra(android.content.Intent.EXTRA_STREAM) as? Uri
+        } else null
     }
 }
 
@@ -111,6 +119,17 @@ private fun PadhoApp(incomingPdf: Uri?) {
     var showOriginal by remember { mutableStateOf(false) }
     LaunchedEffect(language) { preferences.edit().putString("reading_language", language).apply() }
     LaunchedEffect(dark) { preferences.edit().putBoolean("dark_theme", dark).apply() }
+    LaunchedEffect(incomingPdf) {
+        incomingPdf?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {
+                // Shared URIs may grant temporary access only; use them for this session.
+            }
+        }
+    }
     val translationCache = remember { TranslationCache(context) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
