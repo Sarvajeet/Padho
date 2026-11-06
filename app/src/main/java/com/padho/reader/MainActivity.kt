@@ -208,6 +208,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
             }
         } catch (e: Exception) {
             error = e.message ?: "Couldn't read or translate this PDF page."
+            if (documentUri == savedUri) {
+                // A previously granted document may have been moved or its access revoked.
+                preferences.edit().remove("last_pdf_uri").remove("last_page_index").apply()
+                uri = null
+            }
         } finally {
             loading = false
             translating = false
