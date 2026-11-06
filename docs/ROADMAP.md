@@ -9,8 +9,8 @@
 
 ## Phase 1: Translation vertical slice
 - [x] Extract text from a text-based PDF
-- [ ] Improve text segmentation and reading order
-- [ ] Define a replaceable translation provider interface
+- [x] Improve basic paragraph segmentation and sentence-aware translation chunking
+- [x] Define a replaceable translation provider interface
 - [x] Implement one target language end to end
 - [x] Render translated content in a readable page view
 - [x] Add original/translated toggle
@@ -22,7 +22,8 @@
 - [x] Next-page translation prefetch
 - [ ] Bounded prefetch queue and cancellation
 - [ ] Retry and failure behavior
-- [ ] Cache size limits and invalidation
+- [x] Cache size limits and age-based pruning
+- [ ] Cache invalidation controls
 - [ ] Performance instrumentation
 
 ## Phase 3: Reading experience
@@ -43,7 +44,8 @@
 
 ## Release readiness
 - [ ] Add Gradle wrapper (or document CI-provided Gradle)
-- [ ] Add automated unit tests
+- [x] Add initial automated unit tests for translation chunking
+- [ ] Expand automated unit tests for PDF extraction, cache pruning, and provider failures
 - [ ] Verify clean Android build in CI
 - [ ] Test with real PDFs on physical devices
 
