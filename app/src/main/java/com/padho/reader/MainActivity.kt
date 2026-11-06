@@ -183,14 +183,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
                 translating = true
-                val result = withContext(Dispatchers.IO) {
-                    val options = TranslatorOptions.Builder().setSourceLanguage(TranslateLanguage.ENGLISH).setTargetLanguage(targetCode(language)).build()
-                    val translator: Translator = Translation.getClient(options)
-                    try {
-                        Tasks.await(translator.downloadModelIfNeeded())
-                        Tasks.await(translator.translate(extracted))
-                    } finally { translator.close() }
-                }
+                val result = translatePageText(extracted, language)
                 translatedText = result
                 withContext(Dispatchers.IO) { translationCache.put(key, result) }
             }
@@ -209,18 +202,8 @@ private fun PadhoApp(incomingPdf: Uri?) {
                     val nextText = extractPageText(context, documentUri, nextPage)
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
-                        val options = TranslatorOptions.Builder()
-                            .setSourceLanguage(TranslateLanguage.ENGLISH)
-                            .setTargetLanguage(targetCode(language))
-                            .build()
-                        val translator = Translation.getClient(options)
-                        try {
-                            Tasks.await(translator.downloadModelIfNeeded())
-                            val nextTranslation = Tasks.await(translator.translate(nextText))
-                            translationCache.put(nextKey, nextTranslation)
-                        } finally {
-                            translator.close()
-                        }
+                        val nextTranslation = translatePageText(nextText, language)
+                        translationCache.put(nextKey, nextTranslation)
                     }
                 } catch (_: Exception) {
                     // Prefetch is opportunistic. The visible page remains the priority.
