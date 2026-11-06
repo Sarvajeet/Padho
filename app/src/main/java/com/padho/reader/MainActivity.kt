@@ -116,9 +116,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
     var error by remember { mutableStateOf<String?>(null) }
     var retryNonce by remember { mutableIntStateOf(0) }
     var dark by remember { mutableStateOf(preferences.getBoolean("dark_theme", false)) }
+    var fontSizeSp by remember { mutableFloatStateOf(preferences.getFloat("reader_font_size_sp", 19f).coerceIn(15f, 29f)) }
     var showOriginal by remember { mutableStateOf(false) }
     LaunchedEffect(language) { preferences.edit().putString("reading_language", language).apply() }
     LaunchedEffect(dark) { preferences.edit().putBoolean("dark_theme", dark).apply() }
+    LaunchedEffect(fontSizeSp) { preferences.edit().putFloat("reader_font_size_sp", fontSizeSp).apply() }
     LaunchedEffect(incomingPdf) {
         incomingPdf?.let { incoming ->
             hasPersistableUriAccess = try {
@@ -249,10 +251,12 @@ private fun PadhoApp(incomingPdf: Uri?) {
             if (uri == null) WelcomeScreen(language, { language = it }) { picker.launch(arrayOf("application/pdf")) }
             else ReaderScreen(
                 title, page, pageCount, bitmap, pageText, translatedText, loading, translating,
-                error, language, dark, showOriginal,
+                error, language, dark, showOriginal, fontSizeSp,
                 { if (page > 0) page-- }, { if (page + 1 < pageCount) page++ },
                 { language = it; showOriginal = false }, { showOriginal = !showOriginal },
-                { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }, { retryNonce++ }
+                { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }, { retryNonce++ },
+                { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(15f) },
+                { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(29f) }
             )
         }
     }
@@ -301,8 +305,9 @@ private fun WelcomeScreen(language: String, onLanguage: (String) -> Unit, onOpen
 private fun ReaderScreen(
     title: String, page: Int, count: Int, bitmap: Bitmap?, pageText: String, translatedText: String,
     loading: Boolean, translating: Boolean, error: String?, language: String, dark: Boolean,
-    showOriginal: Boolean, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
-    toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit, retry: () -> Unit
+    showOriginal: Boolean, fontSizeSp: Float, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
+    toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit, retry: () -> Unit,
+    decreaseFont: () -> Unit, increaseFont: () -> Unit
 ) {
     var showLanguages by remember { mutableStateOf(false) }
     val foreground = if (dark) Color(0xFFF2F0E8) else Ink
@@ -314,6 +319,8 @@ private fun ReaderScreen(
                 Text("PADHO READER", color = Muted, fontSize = 10.sp, letterSpacing = 1.2.sp)
             }
             IconButton(onClick = { showLanguages = !showLanguages }) { Icon(Icons.Outlined.Language, "Reading language", tint = Green) }
+            TextButton(onClick = decreaseFont, enabled = fontSizeSp > 15f) { Text("A−", color = foreground) }
+            TextButton(onClick = increaseFont, enabled = fontSizeSp < 29f) { Text("A+", color = foreground) }
             TextButton(onClick = toggleTheme) { Text(if (dark) "Light" else "Dark", color = foreground) }
         }
         if (showLanguages) {
@@ -344,7 +351,7 @@ private fun ReaderScreen(
                     Button(onClick = retry, colors = ButtonDefaults.buttonColors(containerColor = Green)) { Text("Try again") }
                 }
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 26.dp)) {
-                    Text(if (showOriginal || translatedText.isBlank()) pageText else translatedText, color = foreground, fontSize = 19.sp, lineHeight = 30.sp)
+                    Text(if (showOriginal || translatedText.isBlank()) pageText else translatedText, color = foreground, fontSize = fontSizeSp.sp, lineHeight = (fontSizeSp * 1.58f).sp)
                     if (translating && translatedText.isBlank()) {
                         Spacer(Modifier.height(16.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
