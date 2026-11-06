@@ -17,7 +17,7 @@
 - [x] Add Hindi, Gujarati, Marathi, and Tamil support
 
 ## Phase 2: Speed and resilience
-- [ ] Memory cache for the active session
+- [x] Bounded in-memory LRU cache for recently used translations
 - [x] Persistent SQLite translation cache
 - [x] Next-page translation prefetch
 - [ ] Bounded prefetch queue and cancellation
