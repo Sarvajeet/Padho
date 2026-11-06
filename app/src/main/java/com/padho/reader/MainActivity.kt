@@ -114,6 +114,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
     var loading by remember { mutableStateOf(false) }
     var translating by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var retryNonce by remember { mutableIntStateOf(0) }
     var dark by remember { mutableStateOf(preferences.getBoolean("dark_theme", false)) }
     var showOriginal by remember { mutableStateOf(false) }
     LaunchedEffect(language) { preferences.edit().putString("reading_language", language).apply() }
@@ -179,7 +180,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         }
     }
 
-    LaunchedEffect(uri, page, language) {
+    LaunchedEffect(uri, page, language, retryNonce) {
         val documentUri = uri ?: return@LaunchedEffect
         loading = true
         translating = false
@@ -251,7 +252,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
                 error, language, dark, showOriginal,
                 { if (page > 0) page-- }, { if (page + 1 < pageCount) page++ },
                 { language = it; showOriginal = false }, { showOriginal = !showOriginal },
-                { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }
+                { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }, { retryNonce++ }
             )
         }
     }
@@ -301,7 +302,7 @@ private fun ReaderScreen(
     title: String, page: Int, count: Int, bitmap: Bitmap?, pageText: String, translatedText: String,
     loading: Boolean, translating: Boolean, error: String?, language: String, dark: Boolean,
     showOriginal: Boolean, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
-    toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit
+    toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit, retry: () -> Unit
 ) {
     var showLanguages by remember { mutableStateOf(false) }
     val foreground = if (dark) Color(0xFFF2F0E8) else Ink
@@ -337,7 +338,11 @@ private fun ReaderScreen(
                     Spacer(Modifier.height(12.dp))
                     Text("No readable text was detected on this page. It may be a low-quality scan or an unsupported layout.", color = Muted, textAlign = TextAlign.Center, fontSize = 13.sp)
                 }
-                error != null && pageText.isBlank() -> Text(error, color = foreground, modifier = Modifier.padding(24.dp), textAlign = TextAlign.Center)
+                error != null && pageText.isBlank() -> Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Text(error, color = foreground, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(14.dp))
+                    Button(onClick = retry, colors = ButtonDefaults.buttonColors(containerColor = Green)) { Text("Try again") }
+                }
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 26.dp)) {
                     Text(if (showOriginal || translatedText.isBlank()) pageText else translatedText, color = foreground, fontSize = 19.sp, lineHeight = 30.sp)
                     if (translating && translatedText.isBlank()) {
@@ -351,6 +356,7 @@ private fun ReaderScreen(
                     if (error != null && pageText.isNotBlank()) {
                         Spacer(Modifier.height(16.dp))
                         Text("Translation unavailable: $error", color = Muted, fontSize = 12.sp)
+                        TextButton(onClick = retry) { Text("Try again", color = Green) }
                     }
                 }
             }
