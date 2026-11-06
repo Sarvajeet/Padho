@@ -79,6 +79,6 @@ class ParagraphGrouper(
 
     private companion object {
         // Raw Kotlin strings need a single backslash for regex whitespace.
-        val LIST_ITEM = Regex("""^(?:[•◦▪‣*-]|\\(?\\d+[.)]|[A-Za-z][.)])\\s+""")
+        val LIST_ITEM = Regex("""^(?:[•◦▪‣*-]|\(?\d+[.)]|[A-Za-z][.)])\s+""")
     }
 }
