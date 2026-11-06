@@ -102,7 +102,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
     }
     var language by remember { mutableStateOf(preferences.getString("reading_language", "हिन्दी") ?: "हिन्दी") }
     var page by remember { mutableIntStateOf(if (incomingPdf == null) preferences.getInt("last_page_index", 0).coerceAtLeast(0) else 0) }
-    var hasPersistableUriAccess by remember { mutableStateOf(false) }
+    var hasPersistableUriAccess by remember { mutableStateOf(incomingPdf == null && savedUri != null) }
     var pageCount by remember { mutableIntStateOf(0) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var pageText by remember { mutableStateOf("") }
