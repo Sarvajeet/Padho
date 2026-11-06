@@ -75,9 +75,10 @@ class ParagraphGrouper(
     }
 
     private fun startsListItem(text: String): Boolean =
-        LIST_ITEM.matches(text.trimStart())
+        LIST_ITEM.containsMatchIn(text.trimStart())
 
     private companion object {
-        val LIST_ITEM = Regex("""^(?:[•◦▪‣*-]|\(?\d+[.)]|[A-Za-z][.)])\s+""")
+        // Raw Kotlin strings need a single backslash for regex whitespace.
+        val LIST_ITEM = Regex("""^(?:[•◦▪‣*-]|\\(?\\d+[.)]|[A-Za-z][.)])\\s+""")
     }
 }
