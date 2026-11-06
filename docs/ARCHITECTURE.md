@@ -12,7 +12,7 @@
 ## Proposed modules
 
 ### PDF
-Responsible for document access, page rendering, page dimensions, text extraction, and block/position metadata where available. The current implementation separates `PdfTextExtractor` from the UI and keeps a reusable `PdfDocumentSession` for native page rendering. Text extraction still opens its own PDF document per page.
+Responsible for document access, page rendering, page dimensions, text extraction, and block/position metadata where available. The current implementation separates `PdfTextExtractor` from the UI and keeps a reusable `PdfDocumentSession` for native page rendering. `PdfPageTextExtractor` first attempts embedded/selectable text, then invokes `OcrTextExtractor` with ML Kit Latin text recognition only when the page contains fewer than 20 letters or digits. OCR renders a page bitmap at 1600 px wide and recycles it after recognition. The OCR fallback is designed for English source PDFs; complex layouts and image quality still require device testing.
 
 ### Translation
 Responsible for language identifiers, segmentation, provider abstraction, request batching, retries, cancellation, and normalized results.
