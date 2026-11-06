@@ -44,7 +44,7 @@
 
 ## Release readiness
 - [ ] Add Gradle wrapper (or document CI-provided Gradle)
-- [x] Add initial automated unit tests for translation chunking
+- [x] Add automated unit tests for translation chunking and OCR fallback policy
 - [ ] Expand automated unit tests for PDF extraction, cache pruning, and provider failures
 - [ ] Verify clean Android build in CI
 - [ ] Test selectable-text and scanned PDFs on physical devices
