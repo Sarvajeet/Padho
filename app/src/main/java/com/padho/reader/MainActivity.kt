@@ -84,11 +84,11 @@ private fun targetCode(language: String): String = when (language) {
     else -> TranslateLanguage.HINDI
 }
 
-private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sourceText: String): String {
+private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sourceText: String, engineVersion: String): String {
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-v4-pdftext-v2|en|$language|$uri|$pageIndex|$digest"
+    return "$engineVersion|pdftext-v2|en|$language|$uri|$pageIndex|$digest"
 }
 
 @Composable
@@ -198,7 +198,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             val activePage = rendered.third
             val extracted = withContext(Dispatchers.IO) { PdfPageTextExtractor.extractPageText(context, documentUri, activePage, pdfSession) }
             pageText = extracted
-            val key = translationCacheKey(documentUri, activePage, language, extracted)
+            val key = translationCacheKey(documentUri, activePage, language, extracted, translationProvider.cacheVersion)
             val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
@@ -224,7 +224,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             launch(Dispatchers.IO) {
                 try {
                     val nextText = PdfPageTextExtractor.extractPageText(context, documentUri, nextPage, pdfSession)
-                    val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
+                    val nextKey = translationCacheKey(documentUri, nextPage, language, nextText, translationProvider.cacheVersion)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
                         val nextTranslation = translationProvider.translate(nextText, targetCode(language))
                         currentCoroutineContext().ensureActive()
