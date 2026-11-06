@@ -12,7 +12,7 @@
 ## Proposed modules
 
 ### PDF
-Responsible for document access, page rendering, page dimensions, text extraction, and block/position metadata where available.
+Responsible for document access, page rendering, page dimensions, text extraction, and block/position metadata where available. The current implementation separates `PdfTextExtractor` from the UI and keeps a reusable `PdfDocumentSession` for native page rendering. Text extraction still opens its own PDF document per page.
 
 ### Translation
 Responsible for language identifiers, segmentation, provider abstraction, request batching, retries, cancellation, and normalized results.
