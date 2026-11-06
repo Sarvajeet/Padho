@@ -208,24 +208,22 @@ private fun PadhoApp(incomingPdf: Uri?) {
                 try {
                     val nextText = extractPageText(context, documentUri, nextPage)
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
-                    if (translationCache.get(nextKey) == null) {
-                        if (nextText.isNotBlank()) {
-                            val options = TranslatorOptions.Builder()
-                                .setSourceLanguage(TranslateLanguage.ENGLISH)
-                                .setTargetLanguage(targetCode(language))
-                                .build()
-                            val translator = Translation.getClient(options)
-                            try {
-                                Tasks.await(translator.downloadModelIfNeeded())
-                                val nextTranslation = Tasks.await(translator.translate(nextText))
-                                translationCache.put(nextKey, nextTranslation)
-                            } finally {
-                                translator.close()
-                            }
+                    if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
+                        val options = TranslatorOptions.Builder()
+                            .setSourceLanguage(TranslateLanguage.ENGLISH)
+                            .setTargetLanguage(targetCode(language))
+                            .build()
+                        val translator = Translation.getClient(options)
+                        try {
+                            Tasks.await(translator.downloadModelIfNeeded())
+                            val nextTranslation = Tasks.await(translator.translate(nextText))
+                            translationCache.put(nextKey, nextTranslation)
+                        } finally {
+                            translator.close()
                         }
-                    } catch (_: Exception) {
-                        // Prefetch is opportunistic. The visible page remains the priority.
                     }
+                } catch (_: Exception) {
+                    // Prefetch is opportunistic. The visible page remains the priority.
                 }
             }
         }
