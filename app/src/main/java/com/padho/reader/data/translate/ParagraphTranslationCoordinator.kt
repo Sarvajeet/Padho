@@ -20,6 +20,11 @@ class ParagraphTranslationCoordinator(
             for (index in chunks.indices) {
                 val chunk = chunks[index]
                 val source = chunk.text
+                if (source.isBlank()) {
+                    append(source)
+                    continue
+                }
+
                 val leadingWhitespace = source.takeWhile { it.isWhitespace() }
                 val trailingWhitespace = source.takeLastWhile { it.isWhitespace() }
                 val bodyEnd = source.length - trailingWhitespace.length
