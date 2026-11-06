@@ -18,7 +18,7 @@ Responsible for document access, page rendering, page dimensions, text extractio
 Responsible for language identifiers, segmentation, provider abstraction, request batching, retries, cancellation, and normalized results.
 
 ### Reader
-Owns current page, selected language, original/translated display mode, zoom, theme, and reading progress.
+Owns current page, selected language, original/translated display mode, zoom, theme, and reading progress. The current app persists the last PDF URI (only when Android grants persistable URI access) and zero-based page index in private preferences. A newly opened/shared PDF takes precedence and starts at page one; restored positions are clamped to the document's current page count.
 
 ### Cache
 Use a memory cache for active reading and a persistent local cache for previously translated content. Cache keys should account for document identity, page, source language, target language, and translation pipeline version.
