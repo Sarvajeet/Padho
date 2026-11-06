@@ -282,7 +282,7 @@ private fun ReaderScreen(
                 pageText.isBlank() && bitmap != null -> Column(Modifier.fillMaxSize().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Image(bitmap.asImageBitmap(), "Original PDF page ${page + 1}", Modifier.fillMaxWidth().weight(1f), contentScale = ContentScale.Fit)
                     Spacer(Modifier.height(12.dp))
-                    Text("This page has no selectable text. Scanned-PDF OCR is planned for a later version.", color = Muted, textAlign = TextAlign.Center, fontSize = 13.sp)
+                    Text("No readable text was detected on this page. It may be a low-quality scan or an unsupported layout.", color = Muted, textAlign = TextAlign.Center, fontSize = 13.sp)
                 }
                 error != null && pageText.isBlank() -> Text(error, color = foreground, modifier = Modifier.padding(24.dp), textAlign = TextAlign.Center)
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 26.dp)) {
