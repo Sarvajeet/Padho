@@ -36,7 +36,7 @@
 - [ ] Accessibility review for Indic scripts
 
 ## Phase 4: Expansion
-- [ ] OCR for scanned PDFs
+- [x] On-device Latin OCR fallback for scanned PDFs (initial implementation)
 - [ ] Additional Indian languages
 - [ ] Offline translation evaluation
 - [ ] EPUB and other document formats
@@ -47,7 +47,7 @@
 - [x] Add initial automated unit tests for translation chunking
 - [ ] Expand automated unit tests for PDF extraction, cache pruning, and provider failures
 - [ ] Verify clean Android build in CI
-- [ ] Test with real PDFs on physical devices
+- [ ] Test selectable-text and scanned PDFs on physical devices
 
 
 ## Recent platform work
