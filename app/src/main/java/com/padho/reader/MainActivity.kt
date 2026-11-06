@@ -45,6 +45,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
 private val Green = Color(0xFF47765B)
 private val Paper = Color(0xFFF7F6F0)
@@ -158,6 +159,35 @@ private fun PadhoApp() {
         } finally {
             loading = false
             translating = false
+        }
+
+        // Warm the next page in the background so forward navigation feels instant.
+        val nextPage = page + 1
+        if (nextPage < pageCount) {
+            launch(Dispatchers.IO) {
+                val nextKey = "${documentUri}|${nextPage}|${language}"
+                if (translationCache.get(nextKey) == null) {
+                    try {
+                        val nextText = extractPageText(context, documentUri, nextPage)
+                        if (nextText.isNotBlank()) {
+                            val options = TranslatorOptions.Builder()
+                                .setSourceLanguage(TranslateLanguage.ENGLISH)
+                                .setTargetLanguage(targetCode(language))
+                                .build()
+                            val translator = Translation.getClient(options)
+                            try {
+                                Tasks.await(translator.downloadModelIfNeeded())
+                                val nextTranslation = Tasks.await(translator.translate(nextText))
+                                translationCache.put(nextKey, nextTranslation)
+                            } finally {
+                                translator.close()
+                            }
+                        }
+                    } catch (_: Exception) {
+                        // Prefetch is opportunistic. The visible page remains the priority.
+                    }
+                }
+            }
         }
     }
 
