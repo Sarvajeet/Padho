@@ -55,7 +55,6 @@ class TranslationCache(context: Context) :
     }
 
     fun put(cacheKey: String, translatedText: String) {
-        memoryCache.put(cacheKey, translatedText)
         val values = ContentValues().apply {
             put(COLUMN_CACHE_KEY, cacheKey)
             put(COLUMN_TRANSLATED_TEXT, translatedText)
@@ -68,6 +67,7 @@ class TranslationCache(context: Context) :
             SQLiteDatabase.CONFLICT_REPLACE
         )
         prune()
+        memoryCache.put(cacheKey, translatedText)
     }
 
     /**
