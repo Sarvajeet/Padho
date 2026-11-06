@@ -13,6 +13,8 @@ class ParagraphTranslationCoordinator(
     private val chunker: ContextualChunker = ContextualChunker()
 ) {
     suspend fun translate(request: ContextualTranslationRequest): String {
+        if (request.paragraph.isBlank()) return request.paragraph
+
         val chunks = chunker.splitParagraph(request.paragraph)
         if (chunks.isEmpty()) return ""
 
