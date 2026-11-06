@@ -40,6 +40,7 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationCache
 import com.padho.reader.data.PdfTextExtractor
 import com.padho.reader.data.PdfDocumentSession
+import com.padho.reader.data.TranslationTextChunker
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -88,8 +89,19 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-v1|en|$language|$uri|$pageIndex|$digest"
+    return "mlkit-v2|en|$language|$uri|$pageIndex|$digest"
 }
+
+/**
+ * Translate coherent sentence groups instead of feeding PDF line fragments
+ * independently. Paragraphs stay separate and sentence groups retain context.
+ */
+private fun translateInContext(translator: Translator, sourceText: String): String =
+    TranslationTextChunker.paragraphs(sourceText).joinToString("\\n\\n") { chunks ->
+        chunks.joinToString(" ") { chunk ->
+            Tasks.await(translator.translate(chunk))
+        }
+    }
 
 
 @Composable
@@ -167,7 +179,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
                     val translator: Translator = Translation.getClient(options)
                     try {
                         Tasks.await(translator.downloadModelIfNeeded())
-                        Tasks.await(translator.translate(extracted))
+                        translateInContext(translator, extracted)
                     } finally { translator.close() }
                 }
                 translatedText = result
@@ -195,7 +207,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
                         val translator = Translation.getClient(options)
                         try {
                             Tasks.await(translator.downloadModelIfNeeded())
-                            val nextTranslation = Tasks.await(translator.translate(nextText))
+                            val nextTranslation = translateInContext(translator, nextText)
                             translationCache.put(nextKey, nextTranslation)
                         } finally {
                             translator.close()
