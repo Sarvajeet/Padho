@@ -32,15 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.Translator
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationCache
 import com.padho.reader.data.PdfTextExtractor
 import com.padho.reader.data.PdfDocumentSession
-import com.padho.reader.data.TranslationTextChunker
+import com.padho.reader.translation.MlKitTranslationProvider
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,20 +85,8 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-v2|en|$language|$uri|$pageIndex|$digest"
+    return "mlkit-v3|en|$language|$uri|$pageIndex|$digest"
 }
-
-/**
- * Translate coherent sentence groups instead of feeding PDF line fragments
- * independently. Paragraphs stay separate and sentence groups retain context.
- */
-private fun translateInContext(translator: Translator, sourceText: String): String =
-    TranslationTextChunker.paragraphs(sourceText).joinToString("\n\n") { chunks ->
-        chunks.joinToString(" ") { chunk ->
-            Tasks.await(translator.translate(chunk))
-        }
-    }
-
 
 @Composable
 private fun PadhoApp(incomingPdf: Uri?) {
@@ -135,6 +119,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         }
     }
     val translationCache = remember { TranslationCache(context) }
+    val translationProvider = remember { MlKitTranslationProvider() }
     val pdfSession = remember { PdfDocumentSession(context) }
     DisposableEffect(pdfSession) {
         onDispose { pdfSession.close() }
@@ -175,12 +160,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             else if (extracted.isNotBlank()) {
                 translating = true
                 val result = withContext(Dispatchers.IO) {
-                    val options = TranslatorOptions.Builder().setSourceLanguage(TranslateLanguage.ENGLISH).setTargetLanguage(targetCode(language)).build()
-                    val translator: Translator = Translation.getClient(options)
-                    try {
-                        Tasks.await(translator.downloadModelIfNeeded())
-                        translateInContext(translator, extracted)
-                    } finally { translator.close() }
+                    translationProvider.translate(extracted, targetCode(language))
                 }
                 translatedText = result
                 withContext(Dispatchers.IO) { translationCache.put(key, result) }
@@ -200,18 +180,8 @@ private fun PadhoApp(incomingPdf: Uri?) {
                     val nextText = PdfTextExtractor.extractPageText(context, documentUri, nextPage)
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
-                        val options = TranslatorOptions.Builder()
-                            .setSourceLanguage(TranslateLanguage.ENGLISH)
-                            .setTargetLanguage(targetCode(language))
-                            .build()
-                        val translator = Translation.getClient(options)
-                        try {
-                            Tasks.await(translator.downloadModelIfNeeded())
-                            val nextTranslation = translateInContext(translator, nextText)
-                            translationCache.put(nextKey, nextTranslation)
-                        } finally {
-                            translator.close()
-                        }
+                        val nextTranslation = translationProvider.translate(nextText, targetCode(language))
+                        translationCache.put(nextKey, nextTranslation)
                     }
                 } catch (_: Exception) {
                     // Prefetch is opportunistic. The visible page remains the priority.
