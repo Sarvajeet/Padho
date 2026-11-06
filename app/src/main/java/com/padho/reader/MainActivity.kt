@@ -34,12 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.Translator
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationCache
+import com.padho.reader.data.translate.ContextualTranslationRequest
+import com.padho.reader.data.translate.MlKitContextualTranslationProvider
+import com.padho.reader.data.translate.ParagraphTranslationCoordinator
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
@@ -90,7 +89,19 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
-    return "mlkit-v1|en|$language|$uri|$pageIndex|$digest"
+    return "mlkit-paragraph-v2|en|$language|$uri|$pageIndex|$digest"
+}
+
+private suspend fun translatePageText(text: String, language: String): String {
+    if (text.isBlank()) return text
+    val request = ContextualTranslationRequest(
+        paragraph = text,
+        sourceLanguage = TranslateLanguage.ENGLISH,
+        targetLanguage = targetCode(language)
+    )
+    return ParagraphTranslationCoordinator(
+        provider = MlKitContextualTranslationProvider()
+    ).translate(request)
 }
 
 private fun extractPageText(context: android.content.Context, uri: Uri, pageIndex: Int): String {
