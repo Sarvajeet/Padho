@@ -50,4 +50,39 @@ class ParagraphTranslationCoordinatorTest {
         assertTrue(received.last().precedingContext!!.isNotBlank())
         assertEquals(null, received.last().followingContext)
     }
+
+    @Test
+    fun preservesOriginalWhitespaceBetweenTranslatedChunks() = runBlocking {
+        val provider = object : ContextualTranslationProvider {
+            override suspend fun translate(request: ContextualTranslationRequest): String {
+                return request.paragraph
+            }
+        }
+        val paragraph = "First sentence is complete.  \\nSecond sentence is complete.\\tThird sentence is complete."
+
+        val result = ParagraphTranslationCoordinator(
+            provider,
+            ContextualChunker(maxChars = 35, locale = Locale.ENGLISH)
+        ).translate(ContextualTranslationRequest(paragraph, targetLanguage = "hi"))
+
+        assertEquals(paragraph, result)
+    }
+
+    @Test
+    fun doesNotSendWhitespaceOnlyInputToProvider() = runBlocking {
+        var calls = 0
+        val provider = object : ContextualTranslationProvider {
+            override suspend fun translate(request: ContextualTranslationRequest): String {
+                calls++
+                return request.paragraph
+            }
+        }
+
+        val result = ParagraphTranslationCoordinator(provider).translate(
+            ContextualTranslationRequest("   \\n  ", targetLanguage = "hi")
+        )
+
+        assertEquals("   \\n  ", result)
+        assertEquals(0, calls)
+    }
 }
