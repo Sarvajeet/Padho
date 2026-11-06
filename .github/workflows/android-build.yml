@@ -29,6 +29,9 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Run translation unit tests
+        run: gradle --no-daemon testDebugUnitTest
+
       - name: Assemble debug APK
         run: gradle --no-daemon assembleDebug
 
