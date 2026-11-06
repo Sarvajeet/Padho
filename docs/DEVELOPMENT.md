@@ -7,7 +7,7 @@ The app currently includes:
 - Jetpack Compose welcome and reader screens.
 - Language selection for Hindi, Gujarati, Marathi, and Tamil.
 - Android system PDF picker with persisted read permission.
-- Native `PdfRenderer` page rendering.
+- Native `PdfRenderer` page rendering through a reusable `PdfDocumentSession`, keeping the active document open while navigating pages.
 - Dedicated `PdfTextExtractor` component using PDFBox-Android for selectable-text PDFs.
 - Basic text normalization for line endings and excessive blank lines, kept separate from the Compose UI.
 - Google ML Kit on-device translation.
@@ -22,7 +22,7 @@ The app currently includes:
 - Translation is shown in a clean reading surface and does not yet preserve the PDF's exact visual layout.
 - Scanned PDFs without selectable text are not OCR'd yet; the original page image is shown.
 - Prefetch currently warms only the next page. A bounded queue with cancellation and reprioritization is still needed.
-- The extractor currently opens the PDF for each page. A reusable document session should be added for large PDFs.
+- Text extraction still opens the PDF separately for each page; the renderer session is reused, but a shared extraction/document session remains a future optimization.
 - Cache keys now include the source page text's SHA-256 fingerprint and a translation-engine version, preventing reuse when extracted page content changes. Cache size limits and expiry still need implementation.
 - Validate ML Kit language model availability and translation quality with representative PDFs before release.
 
