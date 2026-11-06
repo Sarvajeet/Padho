@@ -1,8 +1,6 @@
 package com.padho.reader
 
 import android.graphics.Bitmap
-import android.graphics.Color as NativeColor
-import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -41,6 +39,7 @@ import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationCache
 import com.padho.reader.data.PdfTextExtractor
+import com.padho.reader.data.PdfDocumentSession
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -124,6 +123,10 @@ private fun PadhoApp(incomingPdf: Uri?) {
         }
     }
     val translationCache = remember { TranslationCache(context) }
+    val pdfSession = remember { PdfDocumentSession(context) }
+    DisposableEffect(pdfSession) {
+        onDispose { pdfSession.close() }
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
             try { context.contentResolver.takePersistableUriPermission(picked, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
@@ -144,20 +147,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
         translatedText = ""
         try {
             val rendered = withContext(Dispatchers.IO) {
-                context.contentResolver.openFileDescriptor(documentUri, "r")!!.use { descriptor ->
-                    PdfRenderer(descriptor).use { renderer ->
-                        val count = renderer.pageCount
-                        if (count == 0) return@withContext Pair(null, 0)
-                        renderer.openPage(page.coerceIn(0, count - 1)).use { pdfPage ->
-                            val width = 1200
-                            val height = (width.toFloat() * pdfPage.height / pdfPage.width).toInt().coerceAtLeast(1)
-                            val image = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                            image.eraseColor(NativeColor.WHITE)
-                            pdfPage.render(image, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            Pair(image, count)
-                        }
-                    }
+                val count = pdfSession.pageCount(documentUri)
+                val image = if (count == 0) null else {
+                    pdfSession.renderPage(documentUri, page.coerceIn(0, count - 1))
                 }
+                Pair(image, count)
             }
             bitmap = rendered.first
             pageCount = rendered.second
