@@ -9,7 +9,8 @@ The app currently includes:
 - Android system PDF picker with persisted read permission.
 - Native `PdfRenderer` page rendering through a reusable `PdfDocumentSession`, keeping the active document open while navigating pages.
 - Dedicated `PdfTextExtractor` component using PDFBox-Android for selectable-text PDFs.
-- Basic text normalization for line endings and excessive blank lines, kept separate from the Compose UI.
+- PDF text normalization that rejoins wrapped visual lines into paragraphs before translation.
+- Sentence-aware translation chunking: groups complete English sentences into context-rich requests (up to 900 characters where possible), preserves paragraph boundaries, and splits oversized sentences at word boundaries.
 - Google ML Kit on-device translation.
 - Original-English / translated-text toggle.
 - Page navigation and basic light/dark reader mode.
@@ -24,7 +25,8 @@ The app currently includes:
 - Prefetch currently warms only the next page. A bounded queue with cancellation and reprioritization is still needed.
 - Text extraction still opens the PDF separately for each page; the renderer session is reused, but a shared extraction/document session remains a future optimization.
 - Cache keys now include the source page text's SHA-256 fingerprint and a translation-engine version, preventing reuse when extracted page content changes. Cache size limits and expiry still need implementation.
-- Validate ML Kit language model availability and translation quality with representative PDFs before release.
+- Translation chunking improves context versus line/word fragments, but ML Kit remains an on-device baseline rather than a guaranteed literary-quality engine. Validate idioms, names, dialogue, poetry, and long-form narrative against native-speaker-reviewed samples in all four languages.
+- Sentence boundary detection uses English punctuation heuristics; unusual abbreviations, dialogue formatting, poetry, and PDF extraction errors can still affect grouping.
 
 ## Build locally
 
