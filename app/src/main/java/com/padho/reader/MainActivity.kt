@@ -40,9 +40,8 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.padho.reader.data.TranslationCache
+import com.padho.reader.data.PdfTextExtractor
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -93,20 +92,6 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
     return "mlkit-v1|en|$language|$uri|$pageIndex|$digest"
 }
 
-private fun extractPageText(context: android.content.Context, uri: Uri, pageIndex: Int): String {
-    context.contentResolver.openInputStream(uri).use { input ->
-        requireNotNull(input) { "Unable to open this PDF." }
-        PDDocument.load(input).use { document ->
-            if (pageIndex !in 0 until document.numberOfPages) return ""
-            val stripper = PDFTextStripper().apply {
-                startPage = pageIndex + 1
-                endPage = pageIndex + 1
-                sortByPosition = true
-            }
-            return stripper.getText(document).trim()
-        }
-    }
-}
 
 @Composable
 private fun PadhoApp(incomingPdf: Uri?) {
@@ -176,7 +161,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             }
             bitmap = rendered.first
             pageCount = rendered.second
-            val extracted = withContext(Dispatchers.IO) { extractPageText(context, documentUri, page) }
+            val extracted = withContext(Dispatchers.IO) { PdfTextExtractor.extractPageText(context, documentUri, page) }
             pageText = extracted
             val key = translationCacheKey(documentUri, page, language, extracted)
             val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
@@ -206,7 +191,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         if (nextPage < pageCount) {
             launch(Dispatchers.IO) {
                 try {
-                    val nextText = extractPageText(context, documentUri, nextPage)
+                    val nextText = PdfTextExtractor.extractPageText(context, documentUri, nextPage)
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
                         val options = TranslatorOptions.Builder()
