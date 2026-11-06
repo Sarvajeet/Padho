@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import java.security.MessageDigest
 
 private val Green = Color(0xFF47765B)
@@ -214,8 +215,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
         } catch (e: Exception) {
             error = e.message ?: "Couldn't read or translate this PDF page."
         } finally {
-            loading = false
-            translating = false
+            // A cancelled, outdated page request must not clear the new page's loading state.
+            if (currentCoroutineContext().isActive) {
+                loading = false
+                translating = false
+            }
         }
 
         // Warm the next page in the background so forward navigation feels instant.
