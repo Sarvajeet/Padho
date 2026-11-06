@@ -99,9 +99,12 @@ private suspend fun translatePageText(text: String, language: String): String {
         sourceLanguage = TranslateLanguage.ENGLISH,
         targetLanguage = targetCode(language)
     )
-    return ParagraphTranslationCoordinator(
-        provider = MlKitContextualTranslationProvider()
-    ).translate(request)
+    val provider = MlKitContextualTranslationProvider()
+    return try {
+        ParagraphTranslationCoordinator(provider).translate(request)
+    } finally {
+        provider.close()
+    }
 }
 
 private fun extractPageText(context: android.content.Context, uri: Uri, pageIndex: Int): String {
