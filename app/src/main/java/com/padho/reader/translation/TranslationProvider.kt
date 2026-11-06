@@ -12,5 +12,5 @@ interface TranslationProvider {
      * Translate English source text into the requested ML Kit language code.
      * Implementations are suspending and should cooperate with coroutine cancellation.
      */
-    suspend fun translate(sourceText: String, targetLanguageCode: String): String
+    suspend fun translate(sourceText: String, targetLanguageCode: String, onStatus: suspend (String) -> Unit = {}): String
 }
