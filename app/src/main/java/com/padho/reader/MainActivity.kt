@@ -46,6 +46,7 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 private val Green = Color(0xFF47765B)
 private val Paper = Color(0xFFF7F6F0)
@@ -83,6 +84,13 @@ private fun targetCode(language: String): String = when (language) {
     "मराठी" -> TranslateLanguage.MARATHI
     "தமிழ்" -> TranslateLanguage.TAMIL
     else -> TranslateLanguage.HINDI
+}
+
+private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sourceText: String): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest(sourceText.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+    return "mlkit-v1|en|$language|$uri|$pageIndex|$digest"
 }
 
 private fun extractPageText(context: android.content.Context, uri: Uri, pageIndex: Int): String {
@@ -170,7 +178,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
             pageCount = rendered.second
             val extracted = withContext(Dispatchers.IO) { extractPageText(context, documentUri, page) }
             pageText = extracted
-            val key = "${documentUri}|${page}|${language}"
+            val key = translationCacheKey(documentUri, page, language, extracted)
             val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
@@ -197,10 +205,10 @@ private fun PadhoApp(incomingPdf: Uri?) {
         val nextPage = page + 1
         if (nextPage < pageCount) {
             launch(Dispatchers.IO) {
-                val nextKey = "${documentUri}|${nextPage}|${language}"
-                if (translationCache.get(nextKey) == null) {
-                    try {
-                        val nextText = extractPageText(context, documentUri, nextPage)
+                try {
+                    val nextText = extractPageText(context, documentUri, nextPage)
+                    val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
+                    if (translationCache.get(nextKey) == null) {
                         if (nextText.isNotBlank()) {
                             val options = TranslatorOptions.Builder()
                                 .setSourceLanguage(TranslateLanguage.ENGLISH)
