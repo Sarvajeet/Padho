@@ -92,10 +92,17 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
 private fun PadhoApp(incomingPdf: Uri?) {
     val context = LocalContext.current
     val preferences = remember { context.getSharedPreferences("padho_preferences", android.content.Context.MODE_PRIVATE) }
-    var uri by remember { mutableStateOf(incomingPdf) }
-    var title by remember { mutableStateOf("Your PDF") }
+    val savedUri = remember {
+        preferences.getString("last_pdf_uri", null)?.let { saved -> runCatching { Uri.parse(saved) }.getOrNull() }
+    }
+    val initialUri = incomingPdf ?: savedUri
+    var uri by remember { mutableStateOf(initialUri) }
+    var title by remember {
+        mutableStateOf(initialUri?.lastPathSegment?.substringAfterLast('/')?.substringAfterLast(':') ?: "Your PDF")
+    }
     var language by remember { mutableStateOf(preferences.getString("reading_language", "हिन्दी") ?: "हिन्दी") }
-    var page by remember { mutableIntStateOf(0) }
+    var page by remember { mutableIntStateOf(if (incomingPdf == null) preferences.getInt("last_page_index", 0).coerceAtLeast(0) else 0) }
+    var hasPersistableUriAccess by remember { mutableStateOf(false) }
     var pageCount by remember { mutableIntStateOf(0) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var pageText by remember { mutableStateOf("") }
@@ -108,14 +115,32 @@ private fun PadhoApp(incomingPdf: Uri?) {
     LaunchedEffect(language) { preferences.edit().putString("reading_language", language).apply() }
     LaunchedEffect(dark) { preferences.edit().putBoolean("dark_theme", dark).apply() }
     LaunchedEffect(incomingPdf) {
-        incomingPdf?.let {
-            try {
+        incomingPdf?.let { incoming ->
+            hasPersistableUriAccess = try {
                 context.contentResolver.takePersistableUriPermission(
-                    it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    incoming, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
+                true
             } catch (_: Exception) {
-                // Shared URIs may grant temporary access only; use them for this session.
+                // Some shared URIs are temporary. Do not save them for a future launch.
+                false
             }
+            if (hasPersistableUriAccess) {
+                preferences.edit()
+                    .putString("last_pdf_uri", incoming.toString())
+                    .putInt("last_page_index", 0)
+                    .apply()
+            } else {
+                preferences.edit().remove("last_pdf_uri").remove("last_page_index").apply()
+            }
+        }
+    }
+    LaunchedEffect(uri, page) {
+        if (uri != null && hasPersistableUriAccess) {
+            preferences.edit()
+                .putString("last_pdf_uri", uri.toString())
+                .putInt("last_page_index", page)
+                .apply()
         }
     }
     val translationCache = remember { TranslationCache(context) }
@@ -126,7 +151,22 @@ private fun PadhoApp(incomingPdf: Uri?) {
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
-            try { context.contentResolver.takePersistableUriPermission(picked, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+            hasPersistableUriAccess = try {
+                context.contentResolver.takePersistableUriPermission(
+                    picked, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                true
+            } catch (_: Exception) {
+                false
+            }
+            if (hasPersistableUriAccess) {
+                preferences.edit()
+                    .putString("last_pdf_uri", picked.toString())
+                    .putInt("last_page_index", 0)
+                    .apply()
+            } else {
+                preferences.edit().remove("last_pdf_uri").remove("last_page_index").apply()
+            }
             uri = picked
             title = picked.lastPathSegment?.substringAfterLast('/')?.substringAfterLast(':') ?: "Your PDF"
             page = 0
@@ -145,16 +185,17 @@ private fun PadhoApp(incomingPdf: Uri?) {
         try {
             val rendered = withContext(Dispatchers.IO) {
                 val count = pdfSession.pageCount(documentUri)
-                val image = if (count == 0) null else {
-                    pdfSession.renderPage(documentUri, page.coerceIn(0, count - 1))
-                }
-                Pair(image, count)
+                val validPage = if (count == 0) 0 else page.coerceIn(0, count - 1)
+                val image = if (count == 0) null else pdfSession.renderPage(documentUri, validPage)
+                Triple(image, count, validPage)
             }
             bitmap = rendered.first
             pageCount = rendered.second
-            val extracted = withContext(Dispatchers.IO) { PdfPageTextExtractor.extractPageText(context, documentUri, page, pdfSession) }
+            if (page != rendered.third) page = rendered.third
+            val activePage = rendered.third
+            val extracted = withContext(Dispatchers.IO) { PdfPageTextExtractor.extractPageText(context, documentUri, activePage, pdfSession) }
             pageText = extracted
-            val key = translationCacheKey(documentUri, page, language, extracted)
+            val key = translationCacheKey(documentUri, activePage, language, extracted)
             val cached = withContext(Dispatchers.IO) { translationCache.get(key) }
             if (cached != null) translatedText = cached
             else if (extracted.isNotBlank()) {
