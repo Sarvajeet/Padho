@@ -97,7 +97,7 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
  * independently. Paragraphs stay separate and sentence groups retain context.
  */
 private fun translateInContext(translator: Translator, sourceText: String): String =
-    TranslationTextChunker.paragraphs(sourceText).joinToString("\\n\\n") { chunks ->
+    TranslationTextChunker.paragraphs(sourceText).joinToString("\n\n") { chunks ->
         chunks.joinToString(" ") { chunk ->
             Tasks.await(translator.translate(chunk))
         }
