@@ -24,11 +24,15 @@ class MlKitTranslationProvider : TranslationProvider {
 
         try {
             translator.downloadModelIfNeeded().await()
-            return TranslationTextChunker.paragraphs(sourceText).joinToString("\n\n") { chunks ->
-                chunks.joinToString(" ") { chunk ->
-                    translator.translate(chunk).await()
+            val translatedParagraphs = mutableListOf<String>()
+            for (paragraphChunks in TranslationTextChunker.paragraphs(sourceText)) {
+                val translatedChunks = mutableListOf<String>()
+                for (chunk in paragraphChunks) {
+                    translatedChunks += translator.translate(chunk).await()
                 }
+                translatedParagraphs += translatedChunks.joinToString(" ")
             }
+            return translatedParagraphs.joinToString("\n\n")
         } finally {
             translator.close()
         }
