@@ -20,7 +20,7 @@
 - [x] Bounded in-memory LRU cache for recently used translations
 - [x] Persistent SQLite translation cache
 - [x] Next-page translation prefetch
-- [ ] Bounded prefetch queue and cancellation
+- [x] Single-page bounded prefetch with cancellation when the reading context changes
 - [ ] Retry and failure behavior
 - [x] Cache size limits and age-based pruning
 - [ ] Cache invalidation controls
