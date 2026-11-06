@@ -41,6 +41,9 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.security.MessageDigest
 
 private val Green = Color(0xFF47765B)
@@ -206,6 +209,8 @@ private fun PadhoApp(incomingPdf: Uri?) {
                 translatedText = result
                 withContext(Dispatchers.IO) { translationCache.put(key, result) }
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             error = e.message ?: "Couldn't read or translate this PDF page."
         } finally {
@@ -222,8 +227,11 @@ private fun PadhoApp(incomingPdf: Uri?) {
                     val nextKey = translationCacheKey(documentUri, nextPage, language, nextText)
                     if (nextText.isNotBlank() && translationCache.get(nextKey) == null) {
                         val nextTranslation = translationProvider.translate(nextText, targetCode(language))
+                        currentCoroutineContext().ensureActive()
                         translationCache.put(nextKey, nextTranslation)
                     }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (_: Exception) {
                     // Prefetch is opportunistic. The visible page remains the priority.
                 }
