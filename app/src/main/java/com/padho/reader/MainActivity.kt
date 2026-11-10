@@ -94,7 +94,7 @@ private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sour
 
 private suspend fun translatePageText(text: String, language: String): String {
     if (text.isBlank()) return text
-    val paragraphs = text.split("\\n\\n")
+    val paragraphs = text.split("\n\n")
     val provider = MlKitContextualTranslationProvider()
     return try {
         val coordinator = ParagraphTranslationCoordinator(provider)
@@ -109,7 +109,7 @@ private suspend fun translatePageText(text: String, language: String): String {
                     followingContext = paragraphs.getOrNull(index + 1)
                 )
             )
-        }.joinToString("\\n\\n")
+        }.joinToString("\n\n")
     } finally {
         provider.close()
     }
@@ -119,7 +119,7 @@ private fun extractPageText(context: android.content.Context, uri: Uri, pageInde
     context.contentResolver.openInputStream(uri).use { input ->
         requireNotNull(input) { "Unable to open this PDF." }
         PDDocument.load(input).use { document ->
-            return PdfParagraphExtractor().extract(document, pageIndex).joinToString("\\n\\n")
+            return PdfParagraphExtractor().extract(document, pageIndex).joinToString("\n\n")
         }
     }
 }
