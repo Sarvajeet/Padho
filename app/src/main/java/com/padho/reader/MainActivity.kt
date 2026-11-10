@@ -325,16 +325,36 @@ private fun ReaderScreen(
     var showClearCacheDialog by remember { mutableStateOf(false) }
     val foreground = if (dark) Color(0xFFF2F0E8) else Ink
     Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = openAnother) { Icon(Icons.Outlined.ChevronLeft, "Open another PDF", tint = foreground) }
+        // Keep document identity and language selection separate from reading controls.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = openAnother) {
+                Icon(Icons.Outlined.ChevronLeft, "Open another PDF", tint = foreground)
+            }
             Column(Modifier.weight(1f)) {
                 Text(title, color = foreground, fontWeight = FontWeight.SemiBold, maxLines = 1, fontSize = 14.sp)
                 Text("PADHO READER", color = Muted, fontSize = 10.sp, letterSpacing = 1.2.sp)
             }
-            IconButton(onClick = { showLanguages = !showLanguages }) { Icon(Icons.Outlined.Language, "Reading language", tint = Green) }
-            TextButton(onClick = decreaseFont, enabled = fontSizeSp > 15f) { Text("A−", color = foreground) }
-            TextButton(onClick = increaseFont, enabled = fontSizeSp < 29f) { Text("A+", color = foreground) }
-            TextButton(onClick = toggleTheme) { Text(if (dark) "Light" else "Dark", color = foreground) }
+            IconButton(onClick = { showLanguages = !showLanguages }) {
+                Icon(Icons.Outlined.Language, "Reading language", tint = Green)
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = decreaseFont, enabled = fontSizeSp > 15f) {
+                Text("A−", color = foreground)
+            }
+            TextButton(onClick = increaseFont, enabled = fontSizeSp < 29f) {
+                Text("A+", color = foreground)
+            }
+            TextButton(onClick = toggleTheme) {
+                Text(if (dark) "Light" else "Dark", color = foreground)
+            }
         }
         if (showLanguages) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
