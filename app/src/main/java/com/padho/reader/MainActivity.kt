@@ -276,7 +276,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
 
 @Composable
 private fun WelcomeScreen(language: String, onLanguage: (String) -> Unit, onOpen: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 30.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 28.dp, vertical = 30.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(15.dp)).background(Green), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Book, null, tint = Color.White, modifier = Modifier.size(25.dp))
@@ -324,7 +324,7 @@ private fun ReaderScreen(
     var showLanguages by remember { mutableStateOf(false) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     val foreground = if (dark) Color(0xFFF2F0E8) else Ink
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = openAnother) { Icon(Icons.Outlined.ChevronLeft, "Open another PDF", tint = foreground) }
             Column(Modifier.weight(1f)) {
