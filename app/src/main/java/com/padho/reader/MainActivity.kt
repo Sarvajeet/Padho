@@ -154,6 +154,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         }
     }
     val translationCache = remember { TranslationCache(context) }
+    val cacheScope = rememberCoroutineScope()
     val translationProvider = remember { MlKitTranslationProvider() }
     val pdfSession = remember { PdfDocumentSession(context) }
     DisposableEffect(pdfSession) {
@@ -266,7 +267,8 @@ private fun PadhoApp(incomingPdf: Uri?) {
                 { language = it; showOriginal = false }, { showOriginal = !showOriginal },
                 { dark = !dark }, { picker.launch(arrayOf("application/pdf")) }, { retryNonce++ },
                 { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(15f) },
-                { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(29f) }
+                { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(29f) },
+                { cacheScope.launch(Dispatchers.IO) { translationCache.clearAll() } }
             )
         }
     }
@@ -317,9 +319,10 @@ private fun ReaderScreen(
     loading: Boolean, translating: Boolean, error: String?, language: String, dark: Boolean,
     showOriginal: Boolean, fontSizeSp: Float, translationStatus: String, previous: () -> Unit, next: () -> Unit, onLanguage: (String) -> Unit,
     toggleOriginal: () -> Unit, toggleTheme: () -> Unit, openAnother: () -> Unit, retry: () -> Unit,
-    decreaseFont: () -> Unit, increaseFont: () -> Unit
+    decreaseFont: () -> Unit, increaseFont: () -> Unit, clearTranslations: () -> Unit
 ) {
     var showLanguages by remember { mutableStateOf(false) }
+    var showClearCacheDialog by remember { mutableStateOf(false) }
     val foreground = if (dark) Color(0xFFF2F0E8) else Ink
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -341,6 +344,25 @@ private fun ReaderScreen(
                     }
                 }
             }
+            TextButton(onClick = { showClearCacheDialog = true }) {
+                Text("Clear saved translations", color = Muted, fontSize = 12.sp)
+            }
+        }
+        if (showClearCacheDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearCacheDialog = false },
+                title = { Text("Clear saved translations?") },
+                text = { Text("This removes cached translations for all PDFs on this device. Your original PDFs and reading preferences will remain unchanged.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        clearTranslations()
+                        showClearCacheDialog = false
+                    }) { Text("Clear translations", color = Green) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearCacheDialog = false }) { Text("Cancel") }
+                }
+            )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             Text(if (showOriginal) "Original English" else language, fontSize = 12.sp, color = Muted)
