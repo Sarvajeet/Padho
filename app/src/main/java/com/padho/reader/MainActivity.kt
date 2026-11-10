@@ -359,7 +359,15 @@ private fun ReaderScreen(
                     Button(onClick = retry, colors = ButtonDefaults.buttonColors(containerColor = Green)) { Text("Try again") }
                 }
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 26.dp)) {
-                    Text(\n                        if (showOriginal || translatedText.isBlank()) pageText else translatedText,\n                        color = foreground,\n                        style = TextStyle(\n                            fontSize = fontSizeSp.sp,\n                            lineHeight = (fontSizeSp * 1.72f).sp,\n                            platformStyle = PlatformTextStyle(includeFontPadding = false)\n                        )\n                    )
+                    Text(
+                        if (showOriginal || translatedText.isBlank()) pageText else translatedText,
+                        color = foreground,
+                        style = TextStyle(
+                            fontSize = fontSizeSp.sp,
+                            lineHeight = (fontSizeSp * 1.72f).sp,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        )
+                    )
                     if (translating && translatedText.isBlank()) {
                         Spacer(Modifier.height(16.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
