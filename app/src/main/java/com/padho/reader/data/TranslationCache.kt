@@ -54,6 +54,12 @@ class TranslationCache(context: Context) :
         return translated
     }
 
+    /** Remove all persisted and in-memory translations. */
+    fun clearAll() {
+        writableDatabase.delete(TABLE_TRANSLATIONS, null, null)
+        memoryCache.evictAll()
+    }
+
     fun put(cacheKey: String, translatedText: String) {
         val values = ContentValues().apply {
             put(COLUMN_CACHE_KEY, cacheKey)
