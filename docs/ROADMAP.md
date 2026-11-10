@@ -21,16 +21,16 @@
 - [x] Persistent SQLite translation cache
 - [x] Next-page translation prefetch
 - [x] Single-page bounded prefetch with cancellation when the reading context changes
-- [ ] Retry and failure behavior
+- [x] Retry and failure behavior with actionable translation errors
 - [x] Cache size limits and age-based pruning
-- [ ] Cache invalidation controls
+- [x] Cache invalidation controls
 - [ ] Performance instrumentation
 
 ## Phase 3: Reading experience
 - [x] Persist preferred language
 - [x] Minimal reader controls
 - [x] Light and dark themes
-- [ ] Typography and spacing controls
+- [x] Typography and spacing controls
 - [ ] Smooth page transitions
 - [x] Remember last persistable PDF and page position; restore on launch
 - [ ] Accessibility review for Indic scripts
@@ -45,7 +45,8 @@
 ## Release readiness
 - [ ] Add Gradle wrapper (or document CI-provided Gradle)
 - [x] Add automated unit tests for translation chunking and OCR fallback policy
-- [ ] Expand automated unit tests for PDF extraction, cache pruning, and provider failures
+- [x] Add unit tests for translation provider failure guidance
+- [ ] Expand automated unit tests for PDF extraction and cache pruning
 - [ ] Verify clean Android build in CI
 - [ ] Test selectable-text and scanned PDFs on physical devices
 
