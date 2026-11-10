@@ -87,19 +87,6 @@ private fun targetCode(language: String): String = when (language) {
     else -> TranslateLanguage.HINDI
 }
 
-private fun friendlyTranslationError(error: Exception): String {
-    val detail = error.message.orEmpty().lowercase()
-    return when {
-        listOf("network", "unable to resolve host", "unknownhost", "connection", "timeout").any { it in detail } ->
-            "Couldn't download the language model. Check your internet connection and try again."
-        listOf("model", "download").any { it in detail } ->
-            "The language model couldn't be prepared. Connect to the internet and retry."
-        listOf("unsupported", "not supported").any { it in detail } ->
-            "This translation language isn't supported by the current engine."
-        else -> "Translation couldn't be completed. Please try again."
-    }
-}
-
 private fun translationCacheKey(uri: Uri, pageIndex: Int, language: String, sourceText: String, engineVersion: String): String {
     val digest = MessageDigest.getInstance("SHA-256")
         .digest(sourceText.toByteArray(Charsets.UTF_8))
@@ -238,7 +225,7 @@ private fun PadhoApp(incomingPdf: Uri?) {
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (e: Exception) {
-            error = if (translationStarted) friendlyTranslationError(e) else "Couldn't open this PDF page. Check that the file is still available, then try again."
+            error = if (translationStarted) TranslationErrorMessages.friendly(e) else "Couldn't open this PDF page. Check that the file is still available, then try again."
         } finally {
             // A cancelled, outdated page request must not clear the new page's loading state.
             if (currentCoroutineContext().isActive) {
